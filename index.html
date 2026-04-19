@@ -81,9 +81,18 @@
                 <i data-lucide="shield-alert"></i>
                 <span>ไทยสายด่วน</span>
             </h1>
-            <button onclick="window.location.reload()" class="p-2 hover:bg-red-700 rounded-full transition active:scale-90">
-                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
-            </button>
+            <div class="flex items-center gap-1">
+                <!-- Privacy Policy Button -->
+                <a href="https://sites.google.com/view/callalert/%E0%B8%AB%E0%B8%99%E0%B8%B2%E0%B9%81%E0%B8%A3%E0%B8%81" 
+                   target="_blank" 
+                   class="p-2 hover:bg-red-700 rounded-full transition active:scale-90"
+                   title="นโยบายความเป็นส่วนตัว">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </a>
+                <button onclick="window.location.reload()" class="p-2 hover:bg-red-700 rounded-full transition active:scale-90">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -111,6 +120,13 @@
             <!-- Hotline Categories -->
             <div id="categories-container" class="space-y-4">
                 <!-- Categories will be injected here by JS -->
+            </div>
+
+            <!-- Privacy Policy Link at bottom -->
+            <div class="text-center py-4">
+                <a href="https://sites.google.com/view/callalert/%E0%B8%AB%E0%B8%99%E0%B8%B2%E0%B9%81%E0%B8%A3%E0%B8%81" target="_blank" class="text-xs text-gray-400 hover:text-red-500 underline transition-colors">
+                    นโยบายความเป็นส่วนตัว (Privacy Policy)
+                </a>
             </div>
         </div>
 
