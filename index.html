@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thai Emergency Hub - สายด่วนฉุกเฉิน</title>
+    <title>Global Emergency Hub - สายด่วนฉุกเฉินครบวงจร</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Leaflet CSS for Maps -->
@@ -15,17 +15,14 @@
             font-family: 'Kanit', sans-serif;
             background-color: #f8fafc;
             -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
         }
 
         #map {
-            height: 400px;
+            height: 380px;
             width: 100%;
             border-radius: 1.5rem;
             z-index: 1;
-        }
-
-        .emergency-card:active {
-            transform: scale(0.96);
         }
 
         .tab-active {
@@ -36,11 +33,10 @@
         .category-content {
             transition: all 0.3s ease-out;
             overflow: hidden;
-            max-height: 2000px; 
+            max-height: 3000px; 
             opacity: 1;
         }
 
-        /* Initial Collapsed State */
         .collapsed .category-content {
             max-height: 0 !important;
             opacity: 0;
@@ -53,149 +49,147 @@
             transform: rotate(-90deg);
         }
 
-        /* Locate Button UI */
-        .map-control-btn {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-            background: white;
-            border-radius: 50%;
-            padding: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid #e2e8f0;
+        /* Side Drawer Animation */
+        #side-drawer {
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(-100%);
         }
+        #side-drawer.open {
+            transform: translateX(0);
+        }
+
+        .country-scroller::-webkit-scrollbar { display: none; }
+        .country-scroller { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .map-control-btn:active {
-            background: #f1f5f9;
-            transform: scale(0.9);
-        }
+        .btn-action:active { transform: scale(0.9); }
     </style>
 </head>
 <body class="pb-24">
 
     <!-- Header -->
-    <header class="bg-red-600 text-white p-4 sticky top-0 z-50 shadow-md">
+    <header class="bg-red-600 text-white p-4 sticky top-0 z-[100] shadow-md">
         <div class="container mx-auto flex justify-between items-center max-w-2xl">
-            <h1 class="text-xl font-bold flex items-center gap-2">
-                <i data-lucide="shield-alert"></i>
-                <span>ไทยสายด่วน</span>
-            </h1>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleDrawer()" class="p-1 hover:bg-red-700 rounded-lg transition-colors">
+                    <i data-lucide="globe" class="w-6 h-6"></i>
+                </button>
+                <h1 class="text-lg font-bold">Global Hub</h1>
+            </div>
             <div class="flex items-center gap-1">
-                <!-- Privacy Policy Button -->
                 <a href="https://sites.google.com/view/callalert/%E0%B8%AB%E0%B8%99%E0%B8%B2%E0%B9%81%E0%B8%A3%E0%B8%81" 
-                   target="_blank" 
-                   class="p-2 hover:bg-red-700 rounded-full transition active:scale-90"
-                   title="นโยบายความเป็นส่วนตัว">
+                   target="_blank" class="p-2 hover:bg-red-700 rounded-full">
                     <i data-lucide="shield-check" class="w-5 h-5"></i>
                 </a>
-                <button onclick="window.location.reload()" class="p-2 hover:bg-red-700 rounded-full transition active:scale-90">
+                <button onclick="window.location.reload()" class="p-2 hover:bg-red-700 rounded-full">
                     <i data-lucide="refresh-cw" class="w-5 h-5"></i>
                 </button>
             </div>
         </div>
     </header>
 
+    <!-- Side Drawer (Country Selector) -->
+    <div id="drawer-overlay" onclick="toggleDrawer()" class="fixed inset-0 bg-black/50 z-[110] hidden opacity-0 transition-opacity duration-300"></div>
+    <aside id="side-drawer" class="fixed top-0 left-0 bottom-0 w-64 bg-white z-[120] shadow-2xl overflow-y-auto">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6 border-b pb-4">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="map" class="text-red-500 w-5 h-5"></i> เลือกประเทศ
+                </h2>
+                <button onclick="toggleDrawer()"><i data-lucide="x" class="text-gray-400"></i></button>
+            </div>
+            <nav class="space-y-1" id="drawer-menu">
+                <!-- Country Menu items will be injected by JS -->
+            </nav>
+        </div>
+    </aside>
+
     <main class="container mx-auto p-4 max-w-2xl">
         
         <!-- Tab Content: Hotlines -->
         <div id="hotlines-section" class="space-y-6">
-            <!-- Quick SOS Card -->
-            <div class="bg-gradient-to-br from-red-50 to-white border-2 border-red-100 rounded-3xl p-6 text-center shadow-sm">
-                <h2 class="text-red-600 font-bold mb-4 text-lg">แจ้งเหตุด่วนเหตุร้าย</h2>
-                <a href="tel:191" class="inline-flex items-center justify-center w-28 h-28 bg-red-600 text-white rounded-full shadow-2xl hover:bg-red-700 transition-all emergency-card mb-4 ring-8 ring-red-100">
-                    <i data-lucide="phone-call" class="w-12 h-12"></i>
+            
+            <!-- Horizontal Country Selection -->
+            <div class="space-y-2">
+                <div id="country-list" class="flex gap-2 overflow-x-auto country-scroller pb-2 px-1">
+                    <!-- Country buttons will be injected by JS -->
+                </div>
+            </div>
+
+            <!-- Main SOS Card -->
+            <div id="sos-display-card" class="bg-white border border-gray-100 rounded-[2rem] p-8 text-center shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4 opacity-5">
+                    <i data-lucide="phone" class="w-24 h-24"></i>
+                </div>
+                <h2 id="sos-title" class="text-gray-500 font-medium mb-4 text-sm uppercase tracking-widest">สายด่วนฉุกเฉิน (ไทย)</h2>
+                <a id="sos-link" href="tel:191" class="inline-flex items-center justify-center w-32 h-32 bg-red-600 text-white rounded-full shadow-xl hover:bg-red-700 transition-all btn-action mb-6 ring-8 ring-red-50">
+                    <i data-lucide="phone-call" class="w-14 h-14"></i>
                 </a>
-                <p class="text-4xl font-black text-red-600 tracking-wider">191</p>
-                <p class="text-gray-500 text-sm mt-2">กดเพื่อโทรออกทันที</p>
+                <p id="sos-number" class="text-5xl font-black text-red-600 tracking-tighter">191</p>
+                <div class="mt-4 flex justify-center gap-2">
+                    <span class="px-3 py-1 bg-red-100 text-red-600 rounded-full text-[10px] font-bold">ศูนย์รับแจ้งเหตุ</span>
+                    <span class="px-3 py-1 bg-blue-100 text-blue-600 rounded-full text-[10px] font-bold">24 ชม.</span>
+                </div>
             </div>
 
             <!-- Search Bar -->
             <div class="relative group">
-                <input type="text" id="search-input" placeholder="ค้นหาชื่อหน่วยงานหรือเบอร์โทร..." 
-                    class="w-full p-4 pl-12 rounded-2xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-lg">
-                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-500 transition-colors"></i>
+                <input type="text" id="search-input" placeholder="ค้นหาเบอร์, อีเมล, คนหาย, ไฟป่า..." 
+                    class="w-full p-4 pl-12 rounded-2xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-red-500 outline-none transition-all">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
             </div>
 
             <!-- Hotline Categories -->
             <div id="categories-container" class="space-y-4">
                 <!-- Categories will be injected here by JS -->
             </div>
-
-            <!-- Privacy Policy Link at bottom -->
-            <div class="text-center py-4">
-                <a href="https://sites.google.com/view/callalert/%E0%B8%AB%E0%B8%99%E0%B8%B2%E0%B9%81%E0%B8%A3%E0%B8%81" target="_blank" class="text-xs text-gray-400 hover:text-red-500 underline transition-colors">
-                    นโยบายความเป็นส่วนตัว (Privacy Policy)
-                </a>
-            </div>
         </div>
 
         <!-- Tab Content: Map -->
-        <div id="map-section" class="hidden animate-in fade-in duration-300">
-            <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 space-y-4 relative">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-lg font-bold flex items-center gap-2">
+        <div id="map-section" class="hidden">
+            <div class="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+                <div class="flex items-center justify-between px-2">
+                    <h2 class="font-bold flex items-center gap-2">
                         <i data-lucide="map-pin" class="text-red-500"></i>
-                        สถานที่ใกล้ตัวคุณ
+                        ค้นหาสถานที่ใกล้คุณ
                     </h2>
-                    <span id="location-status" class="text-xs text-gray-400">ยังไม่ได้ระบุตำแหน่ง</span>
+                    <span id="location-status" class="text-[10px] bg-gray-100 px-2 py-1 rounded text-gray-500 uppercase">GPS: Waiting</span>
                 </div>
                 
-                <div class="relative overflow-hidden rounded-2xl">
-                    <div id="map" class="bg-gray-50"></div>
-                    <!-- Custom Manual Locate Button -->
-                    <button onclick="requestLocation(true)" class="map-control-btn text-blue-600 hover:text-blue-700" title="ระบุตำแหน่งของฉัน">
+                <div class="relative">
+                    <div id="map" class="bg-gray-50 border border-gray-100"></div>
+                    <button onclick="requestLocation(true)" class="absolute bottom-4 right-4 z-[500] bg-white p-3 rounded-full shadow-lg border border-gray-200 text-blue-600 active:scale-90">
                         <i data-lucide="crosshair" class="w-6 h-6"></i>
                     </button>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="searchNearby('hospital')" class="flex flex-col items-center justify-center gap-1 p-4 bg-blue-50 text-blue-700 rounded-2xl font-medium hover:bg-blue-100 active:scale-95 transition border border-blue-100">
-                        <i data-lucide="hospital" class="w-6 h-6"></i> 
-                        <span class="text-sm">โรงพยาบาล</span>
+                    <button onclick="searchNearby('hospital')" class="flex flex-col items-center gap-2 p-4 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100 btn-action">
+                        <i data-lucide="hospital"></i> <span class="text-xs font-bold">โรงพยาบาล</span>
                     </button>
-                    <button onclick="searchNearby('police station')" class="flex flex-col items-center justify-center gap-1 p-4 bg-slate-100 text-slate-700 rounded-2xl font-medium hover:bg-slate-200 active:scale-95 transition border border-slate-200">
-                        <i data-lucide="shield" class="w-6 h-6"></i> 
-                        <span class="text-sm">สถานีตำรวจ</span>
+                    <button onclick="searchNearby('police station')" class="flex flex-col items-center gap-2 p-4 bg-slate-50 text-slate-700 rounded-2xl border border-slate-100 btn-action">
+                        <i data-lucide="shield"></i> <span class="text-xs font-bold">สถานีตำรวจ</span>
                     </button>
-                    <button onclick="searchNearby('fire station')" class="flex flex-col items-center justify-center gap-1 p-4 bg-orange-50 text-orange-700 rounded-2xl font-medium hover:bg-orange-100 active:scale-95 transition border border-orange-100">
-                        <i data-lucide="flame" class="w-6 h-6"></i> 
-                        <span class="text-sm">ดับเพลิง</span>
+                    <button onclick="searchNearby('fire station')" class="flex flex-col items-center gap-2 p-4 bg-orange-50 text-orange-700 rounded-2xl border border-orange-100 btn-action">
+                        <i data-lucide="flame"></i> <span class="text-xs font-bold">ดับเพลิง</span>
                     </button>
-                    <button onclick="searchNearby('pharmacy')" class="flex flex-col items-center justify-center gap-1 p-4 bg-green-50 text-green-700 rounded-2xl font-medium hover:bg-green-100 active:scale-95 transition border border-green-100">
-                        <i data-lucide="pill" class="w-6 h-6"></i> 
-                        <span class="text-sm">ร้านขายยา</span>
+                    <button onclick="searchNearby('pharmacy')" class="flex flex-col items-center gap-2 p-4 bg-green-50 text-green-700 rounded-2xl border border-green-100 btn-action">
+                        <i data-lucide="pill"></i> <span class="text-xs font-bold">ร้านขายยา</span>
                     </button>
                 </div>
-            </div>
-
-            <div id="location-error-msg" class="hidden mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
-                <i data-lucide="alert-triangle" class="text-amber-500 shrink-0"></i>
-                <div class="text-xs text-amber-800 leading-relaxed">
-                    <strong id="error-title">ไม่สามารถระบุตำแหน่งได้:</strong> 
-                    <p id="error-detail">กรุณาเปิด GPS หรืออนุญาตการเข้าถึงตำแหน่งในเบราว์เซอร์</p>
-                </div>
-            </div>
-
-            <div class="mt-4 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
-                <i data-lucide="info" class="text-blue-500 shrink-0"></i>
-                <p class="text-xs text-blue-800 leading-relaxed">
-                    เมื่อกดปุ่มค้นหา ระบบจะเปิด <strong>Google Maps</strong> เพื่อนำทางไปยังสถานที่จริงที่ใกล้คุณที่สุด
-                </p>
             </div>
         </div>
     </main>
 
     <!-- Bottom Navigation -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-gray-200 z-50">
+    <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 z-[100]">
         <div class="flex justify-around items-stretch h-16 max-w-2xl mx-auto">
-            <button onclick="switchTab('hotlines')" id="tab-hotlines" class="flex flex-col items-center justify-center w-full text-gray-400 transition-all tab-active group">
-                <i data-lucide="phone" class="w-5 h-5 group-[.tab-active]:scale-110 transition-transform"></i>
-                <span class="text-[10px] font-medium mt-1">เบอร์ฉุกเฉิน</span>
+            <button onclick="switchTab('hotlines')" id="tab-hotlines" class="flex flex-col items-center justify-center w-full text-gray-400 transition-all tab-active">
+                <i data-lucide="phone"></i>
+                <span class="text-[10px] font-bold mt-1">สายด่วน</span>
             </button>
-            <button onclick="switchTab('map')" id="tab-map" class="flex flex-col items-center justify-center w-full text-gray-400 transition-all group">
-                <i data-lucide="map" class="w-5 h-5 group-[.tab-active]:scale-110 transition-transform"></i>
-                <span class="text-[10px] font-medium mt-1">แผนที่ใกล้เคียง</span>
+            <button onclick="switchTab('map')" id="tab-map" class="flex flex-col items-center justify-center w-full text-gray-400 transition-all">
+                <i data-lucide="map"></i>
+                <span class="text-[10px] font-bold mt-1">แผนที่</span>
             </button>
         </div>
     </nav>
@@ -203,155 +197,251 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Data Configuration
-        const emergencyData = [
-            {
-                id: "rescue",
-                category: "กู้ชีพ / แจ้งเหตุทั่วไป",
-                icon: "shield-alert",
-                numbers: [
-                    { name: "เหตุด่วนเหตุร้าย", tel: "191", desc: "ตำรวจ" },
-                    { name: "เจ็บป่วยฉุกเฉิน", tel: "1669", desc: "สพฉ. ทั่วไทย" },
-                    { name: "กู้ชีพนเรนทร", tel: "1646", desc: "พื้นที่ กทม." },
-                    { name: "เหตุเพลิงไหม้", tel: "199", desc: "ดับเพลิง" },
-                    { name: "อุบัติเหตุทางน้ำ", tel: "1196", desc: "กรมเจ้าท่า/ตำรวจน้ำ" }
-                ]
-            },
-            {
-                id: "cyber",
-                category: "ภัยไซเบอร์ / มิจฉาชีพ",
-                icon: "user-x",
-                numbers: [
-                    { name: "ศูนย์ AOC (หลอกลวงออนไลน์)", tel: "1441", desc: "แจ้งอายัดบัญชี/ภัยไซเบอร์ 24 ชม." },
-                    { name: "ศูนย์ PCT (ตำรวจไซเบอร์)", tel: "0818663000", desc: "แจ้งเบาะแสมิจฉาชีพ/หลอกลวง" },
-                    { name: "สมาคมธนาคารไทย", tel: "1213", desc: "แจ้งปัญหาการเงิน/ถูกดูดเงิน" }
-                ]
-            },
-            {
-                id: "legal",
-                category: "กฎหมาย / ทนายความ / ร้องทุกข์",
-                icon: "gavel",
-                numbers: [
-                    { name: "สภาทนายความ", tel: "1167", desc: "ปรึกษากฎหมาย/ขอความช่วยเหลือ" },
-                    { name: "ศูนย์ดำรงธรรม", tel: "1567", desc: "ร้องทุกข์ภาครัฐ/ปัญหาความเดือดร้อน" },
-                    { name: "คุ้มครองผู้บริโภค (สคบ.)", tel: "1166", desc: "ถูกโกง/สินค้าไม่ได้มาตรฐาน" },
-                    { name: "ยุติธรรมสร้างสุข", tel: "1111", desc: "ขอความยุติธรรม/ร้องเรียนทั่วไป" }
-                ]
-            },
-            {
-                id: "social",
-                category: "สุขภาพจิต / ปัญหาสังคม",
-                icon: "heart-pulse",
-                numbers: [
-                    { name: "สายด่วนสุขภาพจิต", tel: "1323", desc: "ปรึกษาปัญหาความเครียด/โรคซึมเศร้า" },
-                    { name: "พม. (แจ้งเหตุสังคม)", tel: "1300", desc: "ความรุนแรง/เด็ก/คนชรา/ผู้พิการ" },
-                    { name: "เลิกเหล้า/ยาเสพติด", tel: "1413", desc: "ศูนย์ปรึกษาการเลิกสารเสพติด" }
-                ]
-            },
-            {
-                id: "travel",
-                category: "เดินทาง / ท่องเที่ยว",
-                icon: "car",
-                numbers: [
-                    { name: "ตำรวจทางหลวง", tel: "1193", desc: "เหตุบนถนนหลวง" },
-                    { name: "ตำรวจท่องเที่ยว", tel: "1155", desc: "ภาษาไทย/อังกฤษ 24 ชม." },
-                    { name: "จส.100", tel: "1137", desc: "จราจร/อุบัติเหตุ/ของหาย" },
-                    { name: "สวพ.91", tel: "1644", desc: "รายงานจราจร/แจ้งเหตุ" },
-                    { name: "กรมทางหลวง", tel: "1586", desc: "สอบถามเส้นทาง" }
-                ]
-            },
-            {
-                id: "utility",
-                category: "ไฟฟ้า / ประปา / แก๊ส",
-                icon: "zap",
-                numbers: [
-                    { name: "การไฟฟ้า (กทม.)", tel: "1130", desc: "กทม. นนทบุรี สมุทรปราการ" },
-                    { name: "การไฟฟ้า (ภูมิภาค)", tel: "1129", desc: "ต่างจังหวัดทั่วไทย" },
-                    { name: "การประปา (กทม.)", tel: "1125", desc: "นครหลวง" },
-                    { name: "การประปา (ภูมิภาค)", tel: "1162", desc: "ส่วนภูมิภาค" }
-                ]
-            },
-            {
-                id: "finance",
-                category: "อายัดบัตร / ธนาคาร",
-                icon: "credit-card",
-                numbers: [
-                    { name: "ธนาคารกสิกรไทย", tel: "028888888", desc: "K-Contact Center" },
-                    { name: "ธนาคารไทยพาณิชย์", tel: "027777777", desc: "SCB Call Center" },
-                    { name: "ธนาคารกรุงไทย", tel: "021111111", desc: "KTB Call Center" },
-                    { name: "ธนาคารกรุงเทพ", tel: "1333", desc: "Bualuang Phone" },
-                    { name: "ธนาคารออมสิน", tel: "1115", desc: "GSB Call Center" }
-                ]
-            }
+        const countryData = [
+            { id: "TH", name: "ไทย", flag: "🇹🇭", mainSos: "191" },
+            { id: "US", name: "สหรัฐฯ", flag: "🇺🇸", mainSos: "911" },
+            { id: "JP", name: "ญี่ปุ่น", flag: "🇯🇵", mainSos: "110" },
+            { id: "KR", name: "เกาหลีใต้", flag: "🇰🇷", mainSos: "112" },
+            { id: "SG", name: "สิงคโปร์", flag: "🇸🇬", mainSos: "999" },
+            { id: "MY", name: "มาเลเซีย", flag: "🇲🇾", mainSos: "999" },
+            { id: "VN", name: "เวียดนาม", flag: "🇻🇳", mainSos: "113" },
+            { id: "KH", name: "กัมพูชา", flag: "🇰🇭", mainSos: "117" },
+            { id: "LA", name: "ลาว", flag: "🇱🇦", mainSos: "191" },
+            { id: "MM", name: "พม่า", flag: "🇲🇲", mainSos: "199" },
+            { id: "ID", name: "อินโดนีเซีย", flag: "🇮🇩", mainSos: "110" }
         ];
+
+        // Advanced Multi-country Database with enriched daily-life entries
+        const emergencyHotlines = {
+            TH: [
+                { id: "res", category: "เหตุด่วน / กู้ภัย / ไฟป่า", icon: "shield-alert", numbers: [
+                    { name: "เหตุด่วนเหตุร้าย (ตำรวจ)", tel: "191", desc: "โทรแจ้งได้ตลอด 24 ชม." },
+                    { name: "เรียกรถพยาบาล", tel: "1669", desc: "เจ็บป่วยฉุกเฉิน" },
+                    { name: "แจ้งไฟไหม้ / ดับเพลิง", tel: "199", desc: "เหตุเพลิงไหม้ กู้ภัย" },
+                    { name: "แจ้งน้ำท่วม / ภัยพิบัติ", tel: "1784", desc: "ศูนย์บรรเทาสาธารณภัย" },
+                    { name: "แจ้งไฟป่า / ช่วยสัตว์ป่า", tel: "1362", desc: "กรมอุทยานฯ" },
+                    { name: "อุบัติเหตุทางน้ำ", tel: "1196", desc: "ตำรวจน้ำ กรมเจ้าท่า" }
+                ]},
+                { id: "missing", category: "คนหาย / ของหาย / สัตว์เลี้ยง", icon: "search", numbers: [
+                    { name: "ศูนย์คนหาย กระจกเงา", tel: "0807752673", desc: "แจ้งคนหาย ตามหาคน" },
+                    { name: "แจ้งคนหาย (อีเมล)", email: "info@backtohome.org", desc: "ส่งรูปและข้อมูล" },
+                    { name: "จส.100 (ของหาย/สัตว์หาย)", tel: "1137", desc: "ประกาศตามหาสิ่งของหรือสัตว์เลี้ยง" },
+                    { name: "สวพ.91 (ของหาย)", tel: "1644", desc: "ลืมของบนแท็กซี่ หรือทางสาธารณะ" },
+                    { name: "ร่วมด้วยช่วยกัน", tel: "1677", desc: "ขอความช่วยเหลือทั่วไป" }
+                ]},
+                { id: "cyber", category: "มิจฉาชีพ / หลอกลวงออนไลน์", icon: "user-x", numbers: [
+                    { name: "สายด่วน 1441 (AOC)", tel: "1441", desc: "อายัดบัญชี ถูกหลอกโอนเงิน 24 ชม." },
+                    { name: "ตำรวจไซเบอร์", tel: "1441", desc: "รับแจ้งความออนไลน์" },
+                    { name: "ส่งหลักฐานให้ตำรวจ", email: "high-tech-crime@police.go.th", desc: "แจ้งเบาะแสมิจฉาชีพทางอีเมล" }
+                ]},
+                { id: "law", category: "ปรึกษาทนาย / ร้องทุกข์", icon: "gavel", numbers: [
+                    { name: "สภาทนายความ", tel: "1167", desc: "ปรึกษากฎหมายฟรี ขอทนายอาสา" },
+                    { name: "ติดต่อทนาย (อีเมล)", email: "advocate@lawyerscouncil.or.th", desc: "ส่งเรื่องขอปรึกษาคดี" },
+                    { name: "ศูนย์ดำรงธรรม", tel: "1567", desc: "ร้องทุกข์ชาวบ้าน ปัญหาภาครัฐ" },
+                    { name: "สายด่วน สคบ.", tel: "1166", desc: "ถูกร้านค้าเอาเปรียบ ซื้อของไม่ได้ของ" },
+                    { name: "สายด่วนยุติธรรม", tel: "1111", desc: "กด 77 ขอความช่วยเหลือทางคดี" }
+                ]},
+                { id: "social", category: "สุขภาพจิต / ปรึกษาปัญหา", icon: "heart-pulse", numbers: [
+                    { name: "สายด่วนสุขภาพจิต", tel: "1323", desc: "เครียด ซึมเศร้า อยากระบาย" },
+                    { name: "แจ้งทำร้ายร่างกาย (พม.)", tel: "1300", desc: "ความรุนแรงในครอบครัว เด็ก คนชรา" },
+                    { name: "สายด่วนเลิกยาเสพติด", tel: "1165", desc: "ปรึกษาเลิกเหล้า เลิกยา" }
+                ]},
+                { id: "travel", category: "เดินทาง / รถติด / อุบัติเหตุ", icon: "car", numbers: [
+                    { name: "ตำรวจทางหลวง", tel: "1193", desc: "อุบัติเหตุบนถนนหลวง" },
+                    { name: "สอบถามเส้นทาง", tel: "1586", desc: "กรมทางหลวง รถติด มอเตอร์เวย์" },
+                    { name: "ตำรวจท่องเที่ยว", tel: "1155", desc: "แจ้งเหตุช่วยเหลือนักท่องเที่ยว" }
+                ]},
+                { id: "utility", category: "ไฟฟ้า / ประปา", icon: "zap", numbers: [
+                    { name: "ไฟดับ (กทม./ปริมณฑล)", tel: "1130", desc: "การไฟฟ้านครหลวง" },
+                    { name: "ไฟดับ (ต่างจังหวัด)", tel: "1129", desc: "การไฟฟ้าส่วนภูมิภาค" },
+                    { name: "ท่อแตก/น้ำไม่ไหล (กทม.)", tel: "1125", desc: "การประปานครหลวง" },
+                    { name: "ท่อแตก/น้ำไม่ไหล (ต่างจังหวัด)", tel: "1162", desc: "การประปาส่วนภูมิภาค" }
+                ]}
+            ],
+            US: [
+                { id: "gen", category: "เหตุด่วน / กู้ภัย", icon: "shield-alert", numbers: [
+                    { name: "เหตุด่วนทั่วไป (911)", tel: "911", desc: "ตำรวจ, ดับเพลิง, รถพยาบาล" },
+                    { name: "บรรเทาภัยพิบัติ (FEMA)", tel: "18006213362", desc: "ขอความช่วยเหลือจากภัยพิบัติ" }
+                ]},
+                { id: "missing", category: "คนหาย / สัตว์เลี้ยงหาย", icon: "search", numbers: [
+                    { name: "ศูนย์เด็กหาย (NCMEC)", tel: "18008435678", desc: "แจ้งเด็กหาย" },
+                    { name: "สัตว์เลี้ยงฉุกเฉิน (ASPCA)", tel: "18884264435", desc: "สัตว์หาย หรือได้รับสารพิษ" }
+                ]},
+                { id: "scam", category: "มิจฉาชีพ / ทนายความ", icon: "gavel", numbers: [
+                    { name: "ถูกขโมยข้อมูล (FTC)", tel: "18774384338", desc: "หลอกลวงออนไลน์" },
+                    { name: "ศูนย์ทนายความช่วยเหลือ", tel: "2024520620", desc: "ศูนย์ให้คำปรึกษากฎหมาย" },
+                    { name: "แจ้งอีเมลหลอกลวง", email: "spam@uce.gov", desc: "ส่งหลักฐานให้หน่วยงานรัฐ" }
+                ]}
+            ],
+            SG: [
+                { id: "gen", category: "เหตุด่วน / กู้ภัย", icon: "shield-alert", numbers: [
+                    { name: "แจ้งตำรวจ", tel: "999", desc: "เหตุด่วนเหตุร้าย" },
+                    { name: "รถพยาบาล / ดับเพลิง", tel: "995", desc: "เจ็บป่วยฉุกเฉินหรือไฟไหม้" }
+                ]},
+                { id: "missing", category: "สัตว์เลี้ยงหาย / มิจฉาชีพ", icon: "search", numbers: [
+                    { name: "ช่วยเหลือสัตว์ (SPCA)", tel: "62875355", desc: "สัตว์บาดเจ็บ สัตว์สูญหาย" },
+                    { name: "สายด่วนแจ้งมิจฉาชีพ", tel: "18007226688", desc: "ถูกหลอกลวงออนไลน์" },
+                    { name: "แจ้งมิจฉาชีพ (อีเมล)", email: "scamalert@ncpc.org.sg", desc: "ส่งหลักฐาน" }
+                ]}
+            ],
+            JP: [
+                { id: "gen", category: "เหตุด่วน (ญี่ปุ่น)", icon: "shield-alert", numbers: [
+                    { name: "แจ้งตำรวจ", tel: "110", desc: "เหตุด่วนเหตุร้าย" },
+                    { name: "รถพยาบาล / ดับเพลิง", tel: "119", desc: "เจ็บป่วยฉุกเฉินหรือไฟไหม้" },
+                    { name: "อุบัติเหตุทางน้ำ", tel: "118", desc: "ยามฝั่ง" }
+                ]},
+                { id: "social", category: "สุขภาพจิต / ขอความช่วยเหลือ", icon: "heart-pulse", numbers: [
+                    { name: "TELL Lifeline", tel: "0357740992", desc: "ปรึกษาปัญหาชีวิต (ภาษาอังกฤษ)" }
+                ]}
+            ],
+            KR: [
+                { id: "gen", category: "เหตุด่วน (เกาหลีใต้)", icon: "shield-alert", numbers: [
+                    { name: "แจ้งตำรวจ", tel: "112", desc: "เหตุด่วนเหตุร้าย" },
+                    { name: "รถพยาบาล / ดับเพลิง", tel: "119", desc: "เจ็บป่วยฉุกเฉิน" },
+                    { name: "ติดต่อหน่วยงานรัฐ", tel: "110", desc: "เรื่องทั่วไปที่ไม่ฉุกเฉิน" }
+                ]}
+            ],
+            // ASEAN General Fallbacks
+            MY: [{ id: "gen", category: "เหตุด่วน (มาเลเซีย)", icon: "shield-alert", numbers: [{ name: "เบอร์ฉุกเฉินหลัก", tel: "999", desc: "ตำรวจ, ดับเพลิง, รถพยาบาล" }] }],
+            VN: [{ id: "gen", category: "เหตุด่วน (เวียดนาม)", icon: "shield-alert", numbers: [{ name: "แจ้งตำรวจ", tel: "113", desc: "ความปลอดภัย" }, { name: "แจ้งดับเพลิง", tel: "114", desc: "ไฟไหม้" }, { name: "เรียกรถพยาบาล", tel: "115", desc: "เจ็บป่วย" }] }],
+            KH: [{ id: "gen", category: "เหตุด่วน (กัมพูชา)", icon: "shield-alert", numbers: [{ name: "แจ้งตำรวจ", tel: "117", desc: "ตำรวจ" }, { name: "แจ้งดับเพลิง", tel: "118", desc: "ไฟไหม้" }, { name: "เรียกรถพยาบาล", tel: "119", desc: "เจ็บป่วย" }] }],
+            LA: [{ id: "gen", category: "เหตุด่วน (ลาว)", icon: "shield-alert", numbers: [{ name: "แจ้งตำรวจ", tel: "191", desc: "ตำรวจ" }, { name: "เรียกรถพยาบาล", tel: "1195", desc: "กู้ชีพ" }, { name: "แจ้งดับเพลิง", tel: "190", desc: "ไฟไหม้" }] }],
+            MM: [{ id: "gen", category: "เหตุด่วน (พม่า)", icon: "shield-alert", numbers: [{ name: "แจ้งตำรวจ", tel: "199", desc: "ตำรวจ" }, { name: "แจ้งดับเพลิง", tel: "191", desc: "ไฟไหม้" }, { name: "เรียกรถพยาบาล", tel: "192", desc: "เจ็บป่วย" }] }],
+            ID: [{ id: "gen", category: "เหตุด่วน (อินโดนีเซีย)", icon: "shield-alert", numbers: [{ name: "เบอร์ฉุกเฉินหลัก", tel: "112", desc: "ทุกบริการ" }, { name: "แจ้งตำรวจ", tel: "110", desc: "ตำรวจ" }] }]
+        };
+
+        // Fallback safety
+        countryData.forEach(c => {
+            if (!emergencyHotlines[c.id]) {
+                emergencyHotlines[c.id] = [{ id: "gen", category: "Emergency Services", icon: "shield-alert", numbers: [{ name: "Universal SOS", tel: c.mainSos, desc: "Emergency" }] }];
+            }
+        });
 
         let map;
         let userMarker;
         let userCoords = { lat: 13.7563, lng: 100.5018 }; 
-        let hasFixedLocation = false;
-        
+        let currentCountry = "TH";
         let collapsedStates = {};
-        emergencyData.forEach(cat => {
-            collapsedStates[cat.id] = true;
-        });
 
         window.onload = () => {
             lucide.createIcons();
+            initCountrySelectors();
             renderHotlines();
             initMap();
             setupSearch();
         };
 
-        function toggleCategory(catId) {
-            const el = document.getElementById(`cat-wrapper-${catId}`);
-            if (el.classList.contains('collapsed')) {
-                el.classList.remove('collapsed');
-                collapsedStates[catId] = false;
-            } else {
-                el.classList.add('collapsed');
-                collapsedStates[catId] = true;
+        function toggleDrawer() {
+            const drawer = document.getElementById('side-drawer');
+            const overlay = document.getElementById('drawer-overlay');
+            drawer.classList.toggle('open');
+            overlay.classList.toggle('hidden');
+            setTimeout(() => overlay.classList.toggle('opacity-100'), 10);
+        }
+
+        function initCountrySelectors() {
+            // Horizontal Bar
+            const horizontalContainer = document.getElementById('country-list');
+            horizontalContainer.innerHTML = countryData.map(c => `
+                <button onclick="setCountry('${c.id}')" id="btn-country-${c.id}" class="country-btn btn-action whitespace-nowrap px-4 py-3 rounded-2xl border transition-all flex items-center gap-2 ${c.id === 'TH' ? 'bg-red-600 border-red-600 text-white shadow-md' : 'bg-white border-gray-100 text-gray-600'}">
+                    <span class="text-lg">${c.flag}</span>
+                    <span class="text-xs font-bold">${c.name}</span>
+                </button>
+            `).join('');
+
+            // Drawer Menu (Side Drawer is now Country List)
+            const drawerMenu = document.getElementById('drawer-menu');
+            drawerMenu.innerHTML = countryData.map(c => `
+                <button onclick="setCountry('${c.id}'); toggleDrawer();" id="drawer-country-${c.id}" class="drawer-country-btn w-full flex items-center gap-4 p-3 rounded-xl transition-all ${c.id === 'TH' ? 'bg-red-50 text-red-600 font-bold' : 'text-gray-600 hover:bg-gray-50'}">
+                    <span class="text-2xl">${c.flag}</span>
+                    <span class="text-sm">${c.name}</span>
+                    ${c.id === 'TH' ? '<i data-lucide="check" class="w-4 h-4 ml-auto text-red-500"></i>' : ''}
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function setCountry(id) {
+            currentCountry = id;
+            
+            // Update Horizontal Buttons
+            document.querySelectorAll('.country-btn').forEach(btn => {
+                btn.className = 'country-btn btn-action whitespace-nowrap px-4 py-3 rounded-2xl border transition-all flex items-center gap-2 bg-white border-gray-100 text-gray-600';
+            });
+            const activeBtn = document.getElementById(`btn-country-${id}`);
+            if(activeBtn) activeBtn.className = 'country-btn btn-action whitespace-nowrap px-4 py-3 rounded-2xl border transition-all flex items-center gap-2 bg-red-600 border-red-600 text-white shadow-md';
+
+            // Update Drawer Buttons
+            document.querySelectorAll('.drawer-country-btn').forEach(btn => {
+                const countryName = btn.querySelector('.text-sm').innerText;
+                const flag = btn.querySelector('.text-2xl').innerText;
+                btn.className = 'drawer-country-btn w-full flex items-center gap-4 p-3 rounded-xl transition-all text-gray-600 hover:bg-gray-50';
+                btn.innerHTML = `<span class="text-2xl">${flag}</span><span class="text-sm">${countryName}</span>`;
+            });
+            const activeDrawerBtn = document.getElementById(`drawer-country-${id}`);
+            if(activeDrawerBtn) {
+                const countryName = activeDrawerBtn.querySelector('.text-sm').innerText;
+                const flag = activeDrawerBtn.querySelector('.text-2xl').innerText;
+                activeDrawerBtn.className = 'drawer-country-btn w-full flex items-center gap-4 p-3 rounded-xl transition-all bg-red-50 text-red-600 font-bold';
+                activeDrawerBtn.innerHTML = `<span class="text-2xl">${flag}</span><span class="text-sm">${countryName}</span><i data-lucide="check" class="w-4 h-4 ml-auto text-red-500"></i>`;
             }
+
+            const countryInfo = countryData.find(c => c.id === id);
+            document.getElementById('sos-title').innerText = `สายด่วนฉุกเฉิน (${countryInfo.name})`;
+            document.getElementById('sos-number').innerText = countryInfo.mainSos;
+            document.getElementById('sos-link').href = `tel:${countryInfo.mainSos}`;
+
+            // Reset search input
+            document.getElementById('search-input').value = "";
+            renderHotlines();
         }
 
         function renderHotlines(filter = "") {
             const container = document.getElementById('categories-container');
             container.innerHTML = '';
+            const categories = emergencyHotlines[currentCountry] || [];
 
-            emergencyData.forEach(cat => {
-                const filteredNumbers = cat.numbers.filter(n => 
+            categories.forEach(cat => {
+                const filteredItems = cat.numbers.filter(n => 
                     n.name.toLowerCase().includes(filter.toLowerCase()) || 
-                    n.tel.includes(filter) ||
+                    (n.tel && n.tel.includes(filter)) ||
+                    (n.email && n.email.includes(filter)) ||
                     n.desc.toLowerCase().includes(filter.toLowerCase())
                 );
 
-                if (filteredNumbers.length > 0) {
+                if (filteredItems.length > 0) {
                     const isCollapsed = filter === "" ? (collapsedStates[cat.id] !== false) : false;
-                    
                     const section = document.createElement('div');
                     section.id = `cat-wrapper-${cat.id}`;
-                    section.className = `bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all ${isCollapsed ? 'collapsed' : ''}`;
+                    section.className = `bg-white rounded-3xl shadow-sm border border-gray-50 overflow-hidden transition-all ${isCollapsed ? 'collapsed' : ''}`;
                     
                     section.innerHTML = `
-                        <button onclick="toggleCategory('${cat.id}')" class="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors active:bg-gray-100 border-b border-gray-50">
-                            <div class="flex items-center gap-3">
-                                <div class="bg-gray-100 p-2 rounded-lg text-gray-600">
+                        <button onclick="toggleCollapse('${cat.id}')" class="w-full flex items-center justify-between p-5 bg-white hover:bg-gray-50 active:bg-gray-100 border-b border-gray-50">
+                            <div class="flex items-center gap-4 text-left">
+                                <div class="bg-red-50 p-2 rounded-xl text-red-600 shrink-0">
                                     <i data-lucide="${cat.icon}" class="w-5 h-5"></i>
                                 </div>
-                                <h3 class="font-bold text-gray-800 text-base text-left">${cat.category}</h3>
+                                <h3 class="font-bold text-gray-800 text-sm leading-tight">${cat.category}</h3>
                             </div>
-                            <i data-lucide="chevron-down" class="chevron-icon text-gray-400 transition-transform duration-300"></i>
+                            <i data-lucide="chevron-down" class="chevron-icon text-gray-400 transition-transform duration-300 shrink-0"></i>
                         </button>
-                        <div class="category-content px-4 py-2 space-y-3">
-                            ${filteredNumbers.map(n => `
-                                <div class="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
+                        <div class="category-content px-5 py-2 space-y-4">
+                            ${filteredItems.map(n => `
+                                <div class="flex justify-between items-start py-4 border-b border-gray-50 last:border-0">
                                     <div class="flex-1 pr-4">
-                                        <div class="font-bold text-gray-800">${n.name}</div>
-                                        <div class="text-[11px] text-gray-400 leading-tight">${n.desc}</div>
-                                        <a href="tel:${n.tel}" class="text-red-600 font-bold text-lg mt-0.5 inline-block hover:underline">${n.tel}</a>
+                                        <div class="font-bold text-gray-800 text-sm">${n.name}</div>
+                                        <div class="text-[11px] text-gray-400 mt-1 font-medium tracking-wide">${n.desc}</div>
+                                        ${n.tel ? `<a href="tel:${n.tel}" class="text-red-600 font-black text-xl mt-1 block">${n.tel}</a>` : ''}
+                                        ${n.email ? `<a href="mailto:${n.email}" class="text-blue-600 text-xs mt-1 block break-all font-medium">${n.email}</a>` : ''}
                                     </div>
-                                    <a href="tel:${n.tel}" class="bg-red-50 text-red-600 p-3.5 rounded-2xl active:bg-red-600 active:text-white transition-all shadow-sm">
-                                        <i data-lucide="phone" class="w-6 h-6"></i>
-                                    </a>
+                                    <div class="flex gap-2">
+                                        ${n.tel ? `<a href="tel:${n.tel}" class="bg-red-50 text-red-600 p-3 rounded-2xl btn-action shadow-sm border border-red-100">
+                                            <i data-lucide="phone" class="w-5 h-5"></i>
+                                        </a>` : ''}
+                                        ${n.email ? `<a href="mailto:${n.email}" class="bg-blue-50 text-blue-600 p-3 rounded-2xl btn-action shadow-sm border border-blue-100">
+                                            <i data-lucide="mail" class="w-5 h-5"></i>
+                                        </a>` : ''}
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
@@ -362,35 +452,27 @@
             lucide.createIcons();
         }
 
+        function toggleCollapse(id) {
+            const el = document.getElementById(`cat-wrapper-${id}`);
+            el.classList.toggle('collapsed');
+            collapsedStates[id] = el.classList.contains('collapsed');
+        }
+
         function setupSearch() {
             document.getElementById('search-input').addEventListener('input', (e) => {
-                const val = e.target.value;
-                renderHotlines(val);
+                renderHotlines(e.target.value);
             });
         }
 
         function switchTab(tab) {
-            const sections = {
-                hotlines: document.getElementById('hotlines-section'),
-                map: document.getElementById('map-section')
-            };
-            const tabs = {
-                hotlines: document.getElementById('tab-hotlines'),
-                map: document.getElementById('tab-map')
-            };
-
+            const sections = { hotlines: document.getElementById('hotlines-section'), map: document.getElementById('map-section') };
+            const tabs = { hotlines: document.getElementById('tab-hotlines'), map: document.getElementById('tab-map') };
             Object.keys(sections).forEach(key => {
                 if (key === tab) {
                     sections[key].classList.remove('hidden');
                     tabs[key].classList.add('tab-active');
                     tabs[key].classList.remove('text-gray-400');
-                    if(key === 'map') {
-                        setTimeout(() => {
-                            map.invalidateSize();
-                            // If we don't have location yet, try getting it automatically
-                            if(!hasFixedLocation) requestLocation(false);
-                        }, 100);
-                    }
+                    if(key === 'map') setTimeout(() => { map.invalidateSize(); requestLocation(false); }, 100);
                 } else {
                     sections[key].classList.add('hidden');
                     tabs[key].classList.remove('tab-active');
@@ -401,54 +483,23 @@
 
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView([userCoords.lat, userCoords.lng], 13);
-            L.control.zoom({ position: 'topright' }).addTo(map);
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OSM'
-            }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
         }
 
-        function requestLocation(showToast = false) {
-            if (!navigator.geolocation) {
-                document.getElementById('location-status').innerText = 'เบราว์เซอร์ไม่รองรับ GPS';
-                return;
-            }
-
-            document.getElementById('location-status').innerText = 'กำลังระบุตำแหน่ง...';
-
-            const geoOptions = {
-                enableHighAccuracy: true,
-                timeout: 8000,
-                maximumAge: 0
-            };
-
+        function requestLocation(manual = false) {
+            if (!navigator.geolocation) return;
+            document.getElementById('location-status').innerText = 'Locating...';
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     userCoords.lat = position.coords.latitude;
                     userCoords.lng = position.coords.longitude;
-                    hasFixedLocation = true;
-                    
                     map.setView([userCoords.lat, userCoords.lng], 15);
-                    document.getElementById('location-status').innerText = 'ระบุตำแหน่งแล้ว';
-                    document.getElementById('location-error-msg').classList.add('hidden');
-                    
+                    document.getElementById('location-status').innerText = 'Online';
                     if (userMarker) map.removeLayer(userMarker);
-                    userMarker = L.marker([userCoords.lat, userCoords.lng]).addTo(map)
-                        .bindPopup("คุณอยู่ที่นี่")
-                        .openPopup();
+                    userMarker = L.marker([userCoords.lat, userCoords.lng]).addTo(map).bindPopup("คุณอยู่ที่นี่").openPopup();
                 },
-                (error) => {
-                    document.getElementById('location-status').innerText = 'ระบุตำแหน่งล้มเหลว';
-                    document.getElementById('location-error-msg').classList.remove('hidden');
-                    
-                    let errorText = "กรุณาเปิด GPS และอนุญาตสิทธิ์การเข้าถึงตำแหน่ง";
-                    if (error.code === 1) errorText = "คุณปฏิเสธการเข้าถึงตำแหน่ง (Permission Denied)";
-                    else if (error.code === 3) errorText = "ขอข้อมูลตำแหน่งหมดเวลา (Timeout)";
-                    
-                    document.getElementById('error-detail').innerText = errorText;
-                    console.warn(`Geolocation Error (${error.code}): ${error.message}`);
-                },
-                geoOptions
+                () => { document.getElementById('location-status').innerText = 'Failed'; },
+                { enableHighAccuracy: true, timeout: 8000 }
             );
         }
 
