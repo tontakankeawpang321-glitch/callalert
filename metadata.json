@@ -1,0 +1,6 @@
+{
+  "name": "Global Emergency Hub - ศูนย์ช่วยเหลือด่วนครบวงจร",
+  "description": "ศูนย์ช่วยเหลือด่วนครบวงจร ระบบสายด่วนฉุกเฉินสากล SOS กดค้าง 3 วินาที พิกัดกู้ชีพ แผนที่ ค้นหาสายด่วน ข้อมูลแพทย์ ICE และคู่มือปฐมพยาบาล",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
